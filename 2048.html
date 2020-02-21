@@ -1,0 +1,1808 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0,user-scalable=0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <title>Document</title>
+    <style>
+        * {
+            padding: 0;
+            margin: 0;
+            list-style: none;
+        }
+
+        .wrapper {
+            width: 100vw;
+            height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .wrapper .inner {
+            width: 400px;
+            height: 400px;
+            padding: 13px;
+            background-color: #bbada0;
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: space-between;
+            align-content: space-between;
+            position: relative;
+        }
+
+        .wrapper .inner div {
+
+            /*
+        **外面的是padding 
+        **mei个缝隙都是13px 
+        */
+            position: absolute;
+            width: 91px;
+            height: 91px;
+            line-height: 91px;
+            font-size: 40px;
+            font-weight: 350;
+            text-align: center;
+            z-index: 1;
+        }
+
+        /* 手机端 */
+        @media screen and (max-width:400px) {
+ 
+            .wrapper {
+            width: 100vw;
+            height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .wrapper .inner {
+            width: 200px;
+            height: 200px;
+            padding: 13px;
+            background-color: #bbada0;
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: space-between;
+            align-content: space-between;
+            position: relative;
+        }
+
+        .wrapper .inner div {
+
+            /*
+        **外面的是padding 
+        **mei个缝隙都是13px 
+        */
+            position: absolute;
+            width: 41px;
+            height: 41px;
+            line-height: 41px;
+            font-size: 20px;
+            font-weight: 350;
+            text-align: center;
+            z-index: 1;
+        }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="wrapper">
+        <div class="inner">
+
+        </div>
+    </div>
+    <script>
+        var inner = document.getElementsByClassName('inner')[0];
+
+        var locationObj = {
+            '0': 13,
+            '1': 117,
+            '2': 221,
+            '3': 325
+        }
+        var locationObj = {
+            '0': 13,
+            '1': 67,
+            '2': 123,
+            '3': 175
+        }
+        if(navigator.userAgent.indexOf('Windows') !== -1){
+            locationObj = {
+            '0': 13,
+            '1': 117,
+            '2': 221,
+            '3': 325
+        }
+        }
+        var colorMapping = {
+            "0": "#ccc0b3",
+            "2": "#eee4da",
+            "4": "#ede0c8",
+            "8": "#f2b179",
+            "16": "#f59563",
+            "32": "#f67e5f",
+            "64": "#f65e3b",
+            "128": "#edcf72",
+            "256": "#edcc61",
+            "512": "#9c0",
+            "1024": "#33b5e5",
+            "2048": "#09c",
+            "4096": "#5b67ff"
+        };
+
+        //二维数组
+        // 0123
+        // 0123
+        // 0123
+        // 0123
+        var locationXY = []
+        for (var i = 0; i < 4; i++) {
+            locationXY[i] = []
+            for (var j = 0; j < 4; j++) {
+                locationXY[i][j] = {};
+                locationXY[i][j].id = "" + i + j;
+                locationXY[i][j].lock = false;
+                locationXY[i][j].value = 0;
+            }
+        }
+        // 一次16个背景图创建
+        locationXY.forEach(function (ele, index) {
+            ele.forEach(function (ele, index) {
+                createDiv(ele.id, 0)
+            })
+        })
+
+
+
+        //通过id设置二维数组
+        function setLocationXY(id, type, value) {
+            if (id && type && (value !== undefined)) {
+                if (type === 'id') {
+                    locationXY[+id[0]][+id[1]].id = value
+                } else if (type === 'lock') {
+                    locationXY[+id[0]][+id[1]].lock = value
+                } else if (type === 'value') {
+                    locationXY[+id[0]][+id[1]].value = value
+                }
+            }
+
+        }
+        //通过id，值类型返回二维数组的值
+        function readLocationXY(id, type) {
+            if (id && type) {
+                return locationXY[+id[0]][+id[1]][type]
+            }
+
+        }
+
+        //通过二维数组的id生成有颜色和数字格子
+        function createDiv(id, value) {
+            var div = document.createElement('div')
+            div.style.left = locationObj[id[1]] + 'px';
+            div.style.top = locationObj[id[0]] + 'px';
+            div.style.backgroundColor = colorMapping[value]
+
+            //存
+            if (value) {
+                div.innerHTML = value
+                div.dataset.id = id
+                divData(id, 'save', div)
+            }
+            //插入棋盘
+            inner.appendChild(div)
+
+        }
+        // 通过dom找到设置的id
+        function domId(dom) {
+            if (dom) {
+                return dom.dataset.id
+            }
+        }
+        //通过id读、存、删棋盘上的格子dom
+        //type = read save delete
+        (function () {
+            var saveData = []
+
+            function divData(id, type, dom) {
+                if (type === 'read') {
+                    var tempDom = _divData(id)
+                    //存在并返回
+                    if (tempDom) {
+                        return tempDom
+                    }
+                } else if (type === 'save' && dom) {
+                    saveData.push(dom)
+                    return true
+                } else if (type === 'delete') {
+                    var tempDom = _divData(id, type)
+                    //存在并删除
+                    if (tempDom) {
+                        tempDom.remove()
+                        return true
+                    } else {
+                        return false
+                    }
+                }
+
+                //找到dom
+                function _divData(id, type) {
+                    var temp;
+                    for (var i = 0; i < saveData.length; i++) {
+                        if (domId(saveData[i]) === id) {
+                            temp = saveData[i]
+                            if (type === 'delete') {
+                                saveData.splice(i, 1)
+                            }
+                            return temp
+                        }
+                    }
+                }
+            }
+            window.divData = divData
+            window.$ = saveData
+        }())
+
+        
+        //在没有占位的地方生成格子
+        //每次移动都会产生2||4的格子
+        function produce(row ,line,value) {
+            var randomNum = Math.random() > 0.5 ? 2 : 4;
+            var id = '' + Math.floor(Math.random() * 4) + Math.floor(Math.random() * 4);
+            // var randomNum = value
+
+            // var id = '' + row + line
+
+
+            if (readLocationXY(id, 'lock') && $.length != 16) {
+                //位置有格子
+                produce()
+            } 
+            else if($.length != 16) {
+                //没有格子的id
+                setLocationXY(id, 'lock', true)
+                setLocationXY(id, 'value', randomNum)
+                createDiv(id, readLocationXY(id, 'value'))
+
+                //结束游戏
+                if($.length === 16){
+                var stop = true
+                for(var i = 0;i < 4;i++){
+                    var temp = []
+                    
+                    for(var j = 0;j < 4;j++){
+                        temp.push(locationXY[j][i].value)
+
+                    }
+
+                    for(var k = 0;k < 3;k++){
+                        if(temp[k] == temp[k+1]){
+                            stop = false
+                            break
+                        }
+                    }
+                }
+                for(var i = 0;i < 4;i++){
+                    var temp = []
+                    
+                    for(var j = 0;j < 4;j++){
+                        temp.push(locationXY[i][j].value)
+
+                    }
+
+                    for(var k = 0;k < 3;k++){
+                        if(temp[k] == temp[k+1]){
+                            stop = false
+                            break
+                        }
+                    }
+                }
+
+                if(stop === true){
+                        setTimeout(function(){
+                            alert('game over')
+                            location.reload()
+                        },1000)
+                    }
+                }
+            }
+
+        }
+       
+       
+        // 开始游戏
+        produce()
+        produce()
+        
+
+        var lock = true
+        //动态锁
+        var sportLock
+        //有移动生成格子，并打印二维value
+        function checkLockArr() {
+
+            produce()
+            for (var i = 0; i < 4; i++) {
+                console.log(locationXY[i][0].value,
+                    locationXY[i][1].value,
+                    locationXY[i][2].value,
+                    locationXY[i][3].value)
+            }
+        }
+
+        //手机端
+        window.addEventListener('load', function (e) {
+            var tempX;
+            var tempY;
+            var locks;
+            var which;
+            document.addEventListener('touchstart', function (e) {
+                //      记录值
+                tempX = e.touches[0].pageX
+                tempY = e.touches[0].pageY
+                locks = false
+            })
+
+            document.addEventListener('touchmove', function (e) {
+                locks = true
+            });
+
+            document.addEventListener('touchend', function (e) {
+                if (locks && lock) {
+                    which = sliderDirection(tempX, tempY, e.changedTouches[0].pageX, e
+                        .changedTouches[0].pageY)
+                    locks = false
+
+                    //top
+                    if (which == 'top') {
+                        var order2;
+                        directionMove('top', function (order) {
+                            sportLock = true
+                            order2 = order
+                        })
+
+                        var timer3 = setInterval(function () {
+                            if (sportLock) {
+                                clearInterval(timer3)
+                                console.log('全部运动结束', order2)
+                                if (order2 != 1) {
+                                    checkLockArr()
+                                }
+                                lock = true
+                            }
+                        }, 400)
+                    }
+                    //left
+                    else if (which == 'left') {
+                        var order2;
+                        directionMove('left', function (order) {
+                            sportLock = true
+                            order2 = order
+                        })
+
+                        var timer3 = setInterval(function () {
+                            if (sportLock) {
+                                clearInterval(timer3)
+                                console.log('全部运动结束', order2)
+                                if (order2 != 1) {
+                                    checkLockArr()
+                                }
+                                lock = true
+                            }
+                        }, 400)
+                    }
+                    //right
+                    else if (which == 'right') {
+                        var order2;
+                        directionMove('right', function (order) {
+                            sportLock = true
+                            order2 = order
+                        })
+
+                        var timer3 = setInterval(function () {
+                            if (sportLock) {
+                                clearInterval(timer3)
+                                console.log('全部运动结束', order2)
+                                if (order2 != 1) {
+                                    checkLockArr()
+                                }
+                                lock = true
+                            }
+                        }, 400)
+                    }
+                    //bottom
+                    else if (which == 'bottom') {
+                        var order2;
+                        directionMove('bottom', function (order) {
+                            sportLock = true
+                            order2 = order
+                        })
+
+                        var timer3 = setInterval(function () {
+                            if (sportLock) {
+                                clearInterval(timer3)
+                                console.log('全部运动结束', order2)
+                                if (order2 != 1) {
+                                    checkLockArr()
+                                }
+                                lock = true
+                            }
+                        }, 400)
+                    }
+                }
+
+            });
+                    //判读方向
+        function sliderDirection(x1, y1, x2, y2) {
+            if (x1 !== x2 && y1 !== y2) {
+
+                //右上滑
+                if (x2 > x1) {
+                    //结果可能 right top bottom
+
+                    var tanX = (y2 - y1) / (x2 - x1)
+
+                    //right
+                    if (Math.abs(tanX) <= 1) {
+                        return 'right'
+                    }
+                    //top
+                    else if (tanX < -1) {
+                        return 'top'
+                    }
+
+                    //bottom  
+                    else if (tanX > 1) {
+                        return 'bottom'
+                    }
+                } else {
+                    //结果可能 left top bottom
+                    var tanX = (y2 - y1) / (x2 - x1)
+
+                    //left
+                    if (Math.abs(tanX) <= 1) {
+                        return 'left'
+                    }
+                    //top
+                    else if (tanX > 1) {
+                        return 'top'
+                    }
+
+                    //bottom  
+                    else if (tanX < -1) {
+                        return 'bottom'
+                    }
+
+                }
+            }
+        }
+        });
+
+        //pc端
+        document.onkeydown = function (e) {
+            if (lock && e.which > 36 && e.which < 41) {
+
+                lock = false
+
+                //top
+                if (e.which == 38) {
+                    var order2;
+                    directionMove('top', function (order) {
+                        sportLock = true
+                        order2 = order
+                    })
+
+                    var timer3 = setInterval(function () {
+                        if (sportLock) {
+                            clearInterval(timer3)
+                            console.log('全部运动结束',order2)
+                            if(order2 != 1){
+                                checkLockArr()
+                            }
+                            lock = true
+                        }
+                    }, 400)
+
+                //right
+                } else if (e.which == 39) {
+                    var order2;
+                    directionMove('right', function (order) {
+                        sportLock = true
+                        order2 = order
+                    })
+
+                    var timer3 = setInterval(function () {
+                        if (sportLock) {
+                            clearInterval(timer3)
+                            console.log('全部运动结束',order2)
+                            if(order2 != 1){
+                                checkLockArr()
+                            }
+                            lock = true
+                        }
+                    }, 400)
+                
+
+                //bottom
+                } else if (e.which == 40) {
+                    var order2;
+                    directionMove('bottom', function (order) {
+                        sportLock = true
+                        order2 = order
+                    })
+
+
+                    var timer3 = setInterval(function () {
+                        if (sportLock) {
+                            clearInterval(timer3)
+                            console.log('全部运动结束',order2)
+                            if(order2 != 1){
+                                checkLockArr()
+                            }
+                            lock = true
+                        }
+                    }, 400)
+
+                //left
+                } else if (e.which == 37) {
+                    var order2;
+                    directionMove('left', function (order) {
+                        sportLock = true
+                        order2 = order
+                    })
+
+                    var timer3 = setInterval(function () {
+                        if (sportLock) {
+                            clearInterval(timer3)
+                            console.log('全部运动结束',order2)
+                            if(order2 != 1){
+                                checkLockArr()
+                            }
+                            lock = true
+                        }
+                    }, 400)
+
+                }
+            }
+        }
+
+        //分析一行列有多少个格子
+        //经过方向键控制后，会变成什么样
+        //callback是动画结束后的触发的函数
+        function directionMove(direction, callback) {
+
+             //列
+            if (direction == 'top' || direction == 'bottom') {
+                for (var ranks = 0; ranks < 4; ranks++) {
+                    //找到这一列的格子
+                    var result = []
+                    for (var i = 0; i < 4; i++) {
+                        if (locationXY[i][ranks].lock) {
+                            result.push(divData(locationXY[i][ranks].id, 'read'))
+                        }
+                    }
+
+                    //找完一列之后,result长度最少为0，最多为4
+                    //计算长度，并且比较格子们value之间是否相等
+                    //定时器存在异步问题，使用回调函数应当注意
+                    if (!result) {
+                        return
+                    } else if (result.length == 1) {
+
+                        //先更新数据再运动到对应的位置
+                        if (direction == 'top') {
+                            // 更新dataid,二维数组
+                            reset(result[0], domId(result[0]), '0' + ranks)
+
+                            //开始移动
+                            move(result[0], 0, direction, callback)
+
+                        } else if (direction == 'bottom') {
+                            // 更新dataid,二维数组
+                            reset(result[0], domId(result[0]), '3' + ranks)
+
+                            //开始移动
+                            move(result[0], 3, direction, callback)
+
+                        }
+                    } else if (result.length == 2) {
+                        if (direction == 'top') {
+                            //判断value是否相等
+                            if (!domValue(result)) {
+                                //不相等
+                                // 更新dataid,二维数组
+                                reset(result[0], domId(result[0]), '0' + ranks,
+                                    result[1], domId(result[1]), '1' + ranks)
+
+                                //开始移动
+                                move(result[0], 0, direction, callback)
+                                move(result[1], 1, direction, callback)
+
+                            } else {
+                                //相等
+                                //开始移动
+
+                                move(result[0], 0, direction, callback)
+
+                                result[1].style.zIndex = '2'
+
+                                move(result[1], 0, direction, callback, function (result) {
+                                    //归位
+                                    result[1].style.zIndex = '1'
+                                    divData(domId(result[0]), 'delete', result[0])
+                                    //加法重置
+                                    // 更新dataid,二维数组
+                                    id3 = '0' + domId(result[0])[1]
+                                    additionReset(domId(result[0]), domId(result[1]), id3, result[1])
+
+                                }, result)
+
+                            }
+                        } else if (direction == 'bottom') {
+                            //判断value是否相等
+                            if (!domValue(result)) {
+
+                                //不相等
+                                // 更新dataid,二维数组
+                                reset(result[1], domId(result[1]), '3' + ranks,
+                                    result[0], domId(result[0]), '2' + ranks)
+
+                                //开始移动
+                                move(result[0], 2, direction, callback)
+                                move(result[1], 3, direction, callback)
+
+                            } else {
+                                //相等
+                                // 更新dataid,二维数组
+                                //开始移动
+
+                                move(result[1], 3, direction, callback)
+
+                                result[0].style.zIndex = '2'
+
+                                move(result[0], 3, direction, callback, function (result) {
+
+                                    //归位
+                                    result[0].style.zIndex = '1'
+
+                                    divData(domId(result[1]), 'delete', result[1])
+
+                                    //加法重置
+                                    var id3 = '3' + domId(result[0])[1] //列数
+
+                                    additionReset(domId(result[0]), domId(result[1]), id3, result[0])
+
+                                }, result)
+
+                            }
+                        }
+                    } else if (result.length == 3) {
+                        //是否存在有两值相等
+                        if (!domValue(result)) {
+                            //不存在
+                            if (direction == 'top') {
+
+                                // 更新dataid,二维数组
+                                reset(result[0], domId(result[0]), '0' + ranks,
+                                    result[1], domId(result[1]), '1' + ranks,
+                                    result[2], domId(result[2]), '2' + ranks)
+
+                                //开始移动
+                                move(result[0], 0, direction, callback)
+                                move(result[1], 1, direction, callback)
+                                move(result[2], 2, direction, callback)
+
+                            } else if (direction == 'bottom') {
+
+                                //逆转数组方便计算
+                                result = result.reverse()
+
+                                // 更新dataid,二维数组
+                                reset(result[0], domId(result[0]), '3' + ranks,
+                                    result[1], domId(result[1]), '2' + ranks,
+                                    result[2], domId(result[2]), '1' + ranks)
+
+                                //开始移动
+                                move(result[0], 3, direction, callback)
+                                move(result[1], 2, direction, callback)
+                                move(result[2], 1, direction, callback)
+                            }
+                        } else {
+                            //存在
+                            //domValue会返回相等数的第二个dom在result数组的下标位置
+                            if (direction == 'top') {
+
+
+                                //覆盖dom下标
+                                var domMoveIndex = domValue(result)[0]
+
+                                //被覆盖dom下标
+                                var domDeleteIndex = domMoveIndex - 1
+
+                                //无关联dom下标
+                                var noneDom = domDeleteIndex == 0 ? 2 : 0
+
+
+                                result[domMoveIndex].style.zIndex = '2'
+
+                                //加法的位置domDeleteIndex
+                                //domDelete
+                                move(result[domDeleteIndex], domDeleteIndex, direction, callback)
+
+                                //nonedom
+                                move(result[noneDom], noneDom == 0 ? 0 : 1, direction, callback)
+
+                                //newDom
+                                //把需要的数据打包成对象
+                                var resultObj = []
+
+                                resultObj[ranks] = {
+                                    '1': result[domMoveIndex],
+                                    '2': result[domDeleteIndex],
+                                    '3': result[noneDom],
+                                    '4': noneDom,
+                                    '5': domDeleteIndex
+                                }
+                                move(result[domMoveIndex], domDeleteIndex, direction, callback, function (resultObj) {
+                                    resultObj[1].style.zIndex = '1'
+                                    divData(domId(resultObj[2]), 'delete', resultObj[2])
+                                    //加法重置
+                                    // 更新dataid,二维数组
+
+                                    var id3 = '' + resultObj[5] + domId(resultObj[1])[1]
+                                    var id4 = resultObj[4] == 0 ? '0' + domId(resultObj[1])[1] : '1' + domId(
+                                        resultObj[1])[1]
+                                    additionReset(domId(resultObj[2]), domId(resultObj[1]), id3, resultObj[1],
+                                        id4, resultObj[3])
+
+                                }, resultObj[ranks])
+
+
+                            } else if (direction == 'bottom') {
+
+
+                                //倒置，方便计算
+                                result = result.reverse()
+
+                                //覆盖dom下标
+                                var domMoveIndex = domValue(result)[0] //1，2
+
+                                //被覆盖dom下标
+                                var domDeleteIndex = domMoveIndex - 1
+
+                                //没有关联到dom下标
+                                var noneDom = domDeleteIndex == 0 ? 2 : 0
+
+
+
+                                result[domMoveIndex].style.zIndex = '2'
+
+                                //加法的位置等于3 huo 2
+                                var bothTarget = domDeleteIndex == 0 ? 3 : 2
+
+                                //domDelete
+                                move(result[domDeleteIndex], bothTarget, direction, callback)
+
+                                //nonedom
+                                move(result[noneDom], noneDom == 0 ? 3 : 2, direction, callback)
+
+                                //newDom
+                                //需要数据打包
+                                var resultObj = []
+
+                                resultObj[ranks] = {
+                                    '1': result[domMoveIndex],
+                                    '2': result[domDeleteIndex],
+                                    '3': result[noneDom],
+                                    '4': noneDom,
+                                    '5': domDeleteIndex,
+                                    '6': bothTarget
+                                }
+                                move(result[domMoveIndex], bothTarget, direction, callback, function (resultObj) {
+                                    resultObj[1].style.zIndex = '1'
+                                    divData(domId(resultObj[2]), 'delete', resultObj[2])
+                                    //加法重置
+                                    // 更新dataid,二维数组
+
+                                    var id3 = '' + resultObj[6] + domId(resultObj[1])[1]
+                                    var id4 = resultObj[4] == 0 ? '3' + domId(resultObj[1])[1] : '2' + domId(
+                                        resultObj[1])[1]
+                                    additionReset(domId(resultObj[2]), domId(resultObj[1]), id3, resultObj[1],
+                                        id4, resultObj[3])
+
+                                }, resultObj[ranks])
+
+                            }
+                        }
+                    } else if (result.length == 4) {
+                        if (domValue(result).length == 1) {
+                            if (direction == 'top') {
+
+
+                                //覆盖dom下标,1,2,3
+                                var domMoveIndex = domValue(result)[0]
+
+                                //被覆盖dom下标
+                                var domDeleteIndex = domMoveIndex - 1
+
+                                //没有关联到dom下标
+                                var noneDom1 = identifyArr([domDeleteIndex, domMoveIndex])[0]
+                                var noneDom2 = identifyArr([domDeleteIndex, domMoveIndex])[1]
+
+
+                                result[domMoveIndex].style.zIndex = '2'
+
+
+
+                                //nonedom1
+                                var nonedom1Target = noneDom1 == 0 ? 0 : 1
+                                move(result[noneDom1], nonedom1Target, direction, callback)
+                                var nonedom2Target = noneDom2 == 3 ? 2 : 1
+                                //nonedom2
+                                move(result[noneDom2], nonedom2Target, direction, callback)
+
+                                //加法的位置等于domDeleteIndex
+
+                                //deleteDom
+                                //无需移动
+
+                                //newDom
+                                //需要数据打包
+                                var resultObj = []
+
+                                resultObj[ranks] = {
+                                    '1': result[domMoveIndex],
+                                    '2': result[domDeleteIndex],
+                                    '3': result[noneDom1],
+                                    '4': noneDom1,
+                                    '5': domDeleteIndex,
+                                    '6': noneDom2,
+                                    '7': result[noneDom2],
+                                    '8': domMoveIndex
+                                }
+                                move(result[domMoveIndex], domDeleteIndex, direction, callback, function (resultObj) {
+                                    resultObj[1].style.zIndex = '1'
+                                    divData(domId(resultObj[2]), 'delete', resultObj[2])
+                                    //加法重置
+                                    // 更新dataid,二维数组
+
+                                    var id3 = '' + resultObj[5] + domId(resultObj[1])[1]
+                                    var id4 = '' + resultObj[8] + domId(resultObj[1])[1]
+                                    var id5 = '2' + domId(resultObj[1])[1]
+                                    //4822
+                                    if (resultObj[5] == 2) {
+                                        additionReset(domId(resultObj[2]), domId(resultObj[1]),
+                                            id3, resultObj[1])
+                                    }
+                                    //4228
+                                    else if (resultObj[5] == 1) {
+
+                                        additionReset(domId(resultObj[2]), domId(resultObj[1]),
+                                            id3, resultObj[1],
+                                            id4, resultObj[7])
+                                    }
+                                    //2248
+                                    else if (resultObj[5] == 0) {
+                                        additionReset(domId(resultObj[2]), domId(resultObj[1]),
+                                            id3, resultObj[1],
+                                            id4, resultObj[3],
+                                            id5, resultObj[7])
+                                    }
+
+
+                                }, resultObj[ranks])
+
+
+                            } else if (direction == 'bottom') {
+
+
+                                result = result.reverse()
+
+                                //覆盖dom下标,1,2,3
+                                var domMoveIndex = domValue(result)[0]
+
+                                //被覆盖dom下标
+                                var domDeleteIndex = domMoveIndex - 1
+
+                                //没有关联到dom下标
+                                var noneDom1 = identifyArr([domDeleteIndex, domMoveIndex])[0]
+                                var noneDom2 = identifyArr([domDeleteIndex, domMoveIndex])[1]
+
+
+                                result[domMoveIndex].style.zIndex = '2'
+
+
+
+                                //nonedom1
+                                var nonedom1Target = noneDom1 == 0 ? 3 : 2
+                                move(result[noneDom1], nonedom1Target, direction, callback)
+                                var nonedom2Target = noneDom2 == 3 ? 1 : 2
+                                //nonedom2
+                                move(result[noneDom2], nonedom2Target, direction, callback)
+
+                                //加法的位置等于3-domDeleteIndex
+
+                                //deleteDom
+                                //无需移动
+
+                                //newDom
+                                //需要数据打包
+                                var resultObj = []
+
+                                resultObj[ranks] = {
+                                    '1': result[domMoveIndex],
+                                    '2': result[domDeleteIndex],
+                                    '3': result[noneDom1],
+                                    '4': noneDom1,
+                                    '5': 3 - domDeleteIndex,
+                                    '6': noneDom2,
+                                    '7': result[noneDom2],
+                                    '8': 3 - domMoveIndex
+                                }
+
+                                move(result[domMoveIndex], 3 - domDeleteIndex, direction, callback, function (
+                                    resultObj) {
+                                    resultObj[1].style.zIndex = '1'
+                                    divData(domId(resultObj[2]), 'delete', resultObj[2])
+                                    //加法重置
+                                    // 更新dataid,二维数组
+
+                                    var id3 = '' + resultObj[5] + domId(resultObj[1])[1]
+                                    var id4 = '' + resultObj[8] + domId(resultObj[1])[1]
+                                    var id5 = '1' + domId(resultObj[1])[1]
+                                    //2284
+                                    if (resultObj[5] == 1) {
+                                        additionReset(domId(resultObj[2]), domId(resultObj[1]),
+                                            id3, resultObj[1])
+                                    }
+                                    //8224
+                                    else if (resultObj[5] == 2) {
+
+                                        additionReset(domId(resultObj[2]), domId(resultObj[1]),
+                                            id3, resultObj[1],
+                                            id4, resultObj[7])
+                                    }
+                                    //8422
+                                    else if (resultObj[5] == 3) {
+                                        additionReset(domId(resultObj[2]), domId(resultObj[1]),
+                                            id3, resultObj[1],
+                                            id4, resultObj[3],
+                                            id5, resultObj[7])
+                                    }
+
+
+                                }, resultObj[ranks])
+
+                            }
+                        } else if (domValue(result).length == 2) {
+                            if (direction == 'top') {
+
+
+                                //覆盖dom下标,1,3
+                                var domMoveIndex = domValue(result)
+
+                                //被覆盖dom下标
+                                var domDeleteIndex = [0, 2]
+
+                                result[domMoveIndex[0]].style.zIndex = '2'
+                                result[domMoveIndex[1]].style.zIndex = '2'
+
+                                //result[0]不动
+
+                                //result[1]
+                                move(result[domMoveIndex[0]], 0, direction, callback)
+
+                                //result[2]
+                                move(result[domDeleteIndex[1]], 1, direction, callback)
+
+
+                                //需要数据打包
+                                var resultObj = []
+
+                                resultObj[ranks] = {
+                                    '1': domMoveIndex,
+                                    '2': domDeleteIndex,
+                                    '3': result[domMoveIndex[0]],
+                                    '4': result[domMoveIndex[1]],
+                                    '5': result[domDeleteIndex[0]],
+                                    '6': result[domDeleteIndex[1]]
+
+                                }
+                                //result[3]
+                                move(result[domMoveIndex[1]], 1, direction, callback, function (resultObj) {
+                                    resultObj[3].style.zIndex = '1'
+                                    resultObj[4].style.zIndex = '1'
+
+                                    divData(domId(resultObj[5]), 'delete', resultObj[2])
+                                    divData(domId(resultObj[6]), 'delete', resultObj[2])
+                                    //加法重置
+                                    // 更新dataid,二维数组
+                                    var id3 = '0' + domId(resultObj[3])[1]
+                                    additionReset(domId(resultObj[5]), domId(resultObj[3]),
+                                        id3, resultObj[3])
+                                    var id4 = '1' + domId(resultObj[3])[1]
+                                    additionReset(domId(resultObj[6]), domId(resultObj[4]),
+                                        id4, resultObj[4])
+
+
+                                }, resultObj[ranks])
+                            } else if (direction == 'bottom') {
+
+                                result = result.reverse()
+
+                                //覆盖dom下标,1,3
+                                var domMoveIndex = domValue(result)
+
+                                //被覆盖dom下标
+                                var domDeleteIndex = [0, 2]
+
+                                result[domMoveIndex[0]].style.zIndex = '2'
+                                result[domMoveIndex[1]].style.zIndex = '2'
+
+                                //result[0]不动
+
+                                //result[1]
+                                move(result[domMoveIndex[0]], 3, direction, callback)
+
+                                //result[2]
+                                move(result[domDeleteIndex[1]], 2, direction, callback)
+
+
+                                //需要数据打包
+                                var resultObj = []
+
+                                resultObj[ranks] = {
+                                    '1': domMoveIndex,
+                                    '2': domDeleteIndex,
+                                    '3': result[domMoveIndex[0]],
+                                    '4': result[domMoveIndex[1]],
+                                    '5': result[domDeleteIndex[0]],
+                                    '6': result[domDeleteIndex[1]]
+
+                                }
+                                //result[3]
+                                move(result[domMoveIndex[1]], 2, direction, callback, function (resultObj) {
+                                    resultObj[3].style.zIndex = '1'
+                                    resultObj[4].style.zIndex = '1'
+
+                                    divData(domId(resultObj[5]), 'delete', resultObj[2])
+                                    divData(domId(resultObj[6]), 'delete', resultObj[2])
+                                    //加法重置
+                                    // 更新dataid,二维数组
+                                    var id3 = '3' + domId(resultObj[3])[1]
+                                    additionReset(domId(resultObj[5]), domId(resultObj[3]),
+                                        id3, resultObj[3])
+                                    var id4 = '2' + domId(resultObj[3])[1]
+                                    additionReset(domId(resultObj[6]), domId(resultObj[4]),
+                                        id4, resultObj[4])
+
+
+                                }, resultObj[ranks])
+                            }
+                        }
+
+                    }
+                }
+            }
+
+
+            //行
+            else if (direction == 'left' || direction == 'right') {
+                for (var ranks = 0; ranks < 4; ranks++) {
+                    //找到这一列的格子
+                    var result = []
+                    for (var i = 0; i < 4; i++) {
+                        if (locationXY[ranks][i].lock) {
+                            result.push(divData(locationXY[ranks][i].id, 'read'))
+                        }
+                    }
+
+                    //找完一列之后,result长度最少为0，最多为4
+                    //计算长度，并且比较格子们value之间是否相等
+                    //定时器存在异步问题，使用回调函数应当注意
+                    if (!result) {
+                        return
+                    } else if (result.length == 1) {
+
+                        //先更新数据再运动到对应的位置
+                        if (direction == 'left') {
+                            // 更新dataid,二维数组
+                            reset(result[0], domId(result[0]), ranks + '0')
+
+                            //开始移动
+                            move(result[0], 0, direction, callback)
+
+                        } else if (direction == 'right') {
+                            // 更新dataid,二维数组
+                            reset(result[0], domId(result[0]), ranks + '3')
+
+                            //开始移动
+                            move(result[0], 3, direction, callback)
+
+                        }
+                    } else if (result.length == 2) {
+                        if (direction == 'left') {
+                            //判断value是否相等
+                            if (!domValue(result)) {
+                                //不相等
+                                // 更新dataid,二维数组
+                                reset(result[0], domId(result[0]), ranks+'0',
+                                    result[1], domId(result[1]), ranks+'1')
+
+                                //开始移动
+                                move(result[0], 0, direction, callback)
+                                move(result[1], 1, direction, callback)
+
+                            } else {
+                                //相等
+                                //开始移动
+
+                                move(result[0], 0, direction, callback)
+
+                                result[1].style.zIndex = '2'
+
+                                move(result[1], 0, direction, callback, function (result) {
+                                    //归位
+                                    result[1].style.zIndex = '1'
+                                    divData(domId(result[0]), 'delete', result[0])
+                                    //加法重置
+                                    // 更新dataid,二维数组
+                                    id3 = domId(result[0])[0] + '0'
+                                    additionReset(domId(result[0]), domId(result[1]), id3, result[1])
+
+                                }, result)
+
+                            }
+                        } else if (direction == 'right') {
+                            //判断value是否相等
+                            if (!domValue(result)) {
+
+                                //不相等
+                                // 更新dataid,二维数组
+                                reset(result[1], domId(result[1]), ranks + '3',
+                                    result[0], domId(result[0]), ranks + '2')
+
+                                //开始移动
+                                move(result[0], 2, direction, callback)
+                                move(result[1], 3, direction, callback)
+
+                            } else {
+                                //相等
+                                // 更新dataid,二维数组
+                                //开始移动
+
+                                move(result[1], 3, direction, callback)
+
+                                result[0].style.zIndex = '2'
+
+                                move(result[0], 3, direction, callback, function (result) {
+
+                                    //归位
+                                    result[0].style.zIndex = '1'
+
+                                    divData(domId(result[1]), 'delete', result[1])
+
+                                    //加法重置
+                                    var id3 = domId(result[0])[0] + '3'//列数
+
+                                    additionReset(domId(result[0]), domId(result[1]), id3, result[0])
+
+                                }, result)
+
+                            }
+                        }
+                    } else if (result.length == 3) {
+                        //是否存在有两值相等
+                        if (!domValue(result)) {
+                            //不存在
+                            if (direction == 'left') {
+
+                                // 更新dataid,二维数组
+                                reset(result[0], domId(result[0]), ranks + '0',
+                                    result[1], domId(result[1]), ranks + '1',
+                                    result[2], domId(result[2]), ranks + '2')
+
+                                //开始移动
+                                move(result[0], 0, direction, callback)
+                                move(result[1], 1, direction, callback)
+                                move(result[2], 2, direction, callback)
+
+                            } else if (direction == 'right') {
+
+                                //逆转数组方便计算
+                                result = result.reverse()
+
+                                // 更新dataid,二维数组
+                                reset(result[0], domId(result[0]), ranks + '3',
+                                    result[1], domId(result[1]), ranks + '2',
+                                    result[2], domId(result[2]), ranks + '1')
+
+                                //开始移动
+                                move(result[0], 3, direction, callback)
+                                move(result[1], 2, direction, callback)
+                                move(result[2], 1, direction, callback)
+                            }
+                        } else {
+                            //存在
+                            //domValue会返回相等数的第二个dom在result数组的下标位置
+                            if (direction == 'left') {
+
+
+                                //覆盖dom下标
+                                var domMoveIndex = domValue(result)[0]
+
+                                //被覆盖dom下标
+                                var domDeleteIndex = domMoveIndex - 1
+
+                                //无关联dom下标
+                                var noneDom = domDeleteIndex == 0 ? 2 : 0
+
+
+                                result[domMoveIndex].style.zIndex = '2'
+
+                                //加法的位置domDeleteIndex
+                                //domDelete
+                                move(result[domDeleteIndex], domDeleteIndex, direction, callback)
+
+                                //nonedom
+                                move(result[noneDom], noneDom == 0 ? 0 : 1, direction, callback)
+
+                                //newDom
+                                //把需要的数据打包成对象
+                                var resultObj = []
+
+                                resultObj[ranks] = {
+                                    '1': result[domMoveIndex],
+                                    '2': result[domDeleteIndex],
+                                    '3': result[noneDom],
+                                    '4': noneDom,
+                                    '5': domDeleteIndex
+                                }
+                                move(result[domMoveIndex], domDeleteIndex, direction, callback, function (resultObj) {
+                                    resultObj[1].style.zIndex = '1'
+                                    divData(domId(resultObj[2]), 'delete', resultObj[2])
+                                    //加法重置
+                                    // 更新dataid,二维数组
+
+                                    var id3 = '' + domId(resultObj[1])[0] + resultObj[5]
+                                    var id4 = resultObj[4] == 0 ? domId(resultObj[1])[0] + '0' : domId(resultObj[1])[0] + '1'
+                                    additionReset(domId(resultObj[2]), domId(resultObj[1]), id3, resultObj[1],
+                                        id4, resultObj[3])
+
+                                }, resultObj[ranks])
+
+
+                            } else if (direction == 'right') {
+
+
+                                //倒置，方便计算
+                                result = result.reverse()
+
+                                //覆盖dom下标
+                                var domMoveIndex = domValue(result)[0] //1，2
+
+                                //被覆盖dom下标
+                                var domDeleteIndex = domMoveIndex - 1
+
+                                //没有关联到dom下标
+                                var noneDom = domDeleteIndex == 0 ? 2 : 0
+
+
+
+                                result[domMoveIndex].style.zIndex = '2'
+
+                                //加法的位置等于3 huo 2
+                                var bothTarget = domDeleteIndex == 0 ? 3 : 2
+
+                                //domDelete
+                                move(result[domDeleteIndex], bothTarget, direction, callback)
+
+                                //nonedom
+                                move(result[noneDom], noneDom == 0 ? 3 : 2, direction, callback)
+
+                                //newDom
+                                //需要数据打包
+                                var resultObj = []
+
+                                resultObj[ranks] = {
+                                    '1': result[domMoveIndex],
+                                    '2': result[domDeleteIndex],
+                                    '3': result[noneDom],
+                                    '4': noneDom,
+                                    '5': domDeleteIndex,
+                                    '6': bothTarget
+                                }
+                                move(result[domMoveIndex], bothTarget, direction, callback, function (resultObj) {
+                                    resultObj[1].style.zIndex = '1'
+                                    divData(domId(resultObj[2]), 'delete', resultObj[2])
+                                    //加法重置
+                                    // 更新dataid,二维数组
+
+                                    var id3 = '' + domId(resultObj[1])[0] + resultObj[6]
+                                    var id4 = resultObj[4] == 0 ? domId(resultObj[1])[0] + '3' : domId(resultObj[1])[0] + '2'
+                                    additionReset(domId(resultObj[2]), domId(resultObj[1]), id3, resultObj[1],
+                                        id4, resultObj[3])
+
+                                }, resultObj[ranks])
+
+                            }
+                        }
+                    } else if (result.length == 4) {
+                        if (domValue(result).length == 1) {
+                            if (direction == 'left') {
+
+
+                                //覆盖dom下标,1,2,3
+                                var domMoveIndex = domValue(result)[0]
+
+                                //被覆盖dom下标
+                                var domDeleteIndex = domMoveIndex - 1
+
+                                //没有关联到dom下标
+                                var noneDom1 = identifyArr([domDeleteIndex, domMoveIndex])[0]
+                                var noneDom2 = identifyArr([domDeleteIndex, domMoveIndex])[1]
+
+
+                                result[domMoveIndex].style.zIndex = '2'
+
+
+
+                                //nonedom1
+                                var nonedom1Target = noneDom1 == 0 ? 0 : 1
+                                move(result[noneDom1], nonedom1Target, direction, callback)
+                                var nonedom2Target = noneDom2 == 3 ? 2 : 1
+                                //nonedom2
+                                move(result[noneDom2], nonedom2Target, direction, callback)
+
+                                //加法的位置等于domDeleteIndex
+
+                                //deleteDom
+                                //无需移动
+
+                                //newDom
+                                //需要数据打包
+                                var resultObj = []
+
+                                resultObj[ranks] = {
+                                    '1': result[domMoveIndex],
+                                    '2': result[domDeleteIndex],
+                                    '3': result[noneDom1],
+                                    '4': noneDom1,
+                                    '5': domDeleteIndex,
+                                    '6': noneDom2,
+                                    '7': result[noneDom2],
+                                    '8': domMoveIndex
+                                }
+                                move(result[domMoveIndex], domDeleteIndex, direction, callback, function (resultObj) {
+                                    resultObj[1].style.zIndex = '1'
+                                    divData(domId(resultObj[2]), 'delete', resultObj[2])
+                                    //加法重置
+                                    // 更新dataid,二维数组
+
+                                    var id3 = '' + domId(resultObj[1])[0] + resultObj[5] 
+                                    var id4 = '' + domId(resultObj[1])[0] + resultObj[8] 
+                                    var id5 =  domId(resultObj[1])[0] + '2'
+                                    //4822
+                                    if (resultObj[5] == 2) {
+                                        additionReset(domId(resultObj[2]), domId(resultObj[1]),
+                                            id3, resultObj[1])
+                                    }
+                                    //4228
+                                    else if (resultObj[5] == 1) {
+
+                                        additionReset(domId(resultObj[2]), domId(resultObj[1]),
+                                            id3, resultObj[1],
+                                            id4, resultObj[7])
+                                    }
+                                    //2248
+                                    else if (resultObj[5] == 0) {
+                                        additionReset(domId(resultObj[2]), domId(resultObj[1]),
+                                            id3, resultObj[1],
+                                            id4, resultObj[3],
+                                            id5, resultObj[7])
+                                    }
+
+
+                                }, resultObj[ranks])
+
+
+                            } else if (direction == 'right') {
+
+
+                                result = result.reverse()
+
+                                //覆盖dom下标,1,2,3
+                                var domMoveIndex = domValue(result)[0]
+
+                                //被覆盖dom下标
+                                var domDeleteIndex = domMoveIndex - 1
+
+                                //没有关联到dom下标
+                                var noneDom1 = identifyArr([domDeleteIndex, domMoveIndex])[0]
+                                var noneDom2 = identifyArr([domDeleteIndex, domMoveIndex])[1]
+
+
+                                result[domMoveIndex].style.zIndex = '2'
+
+
+
+                                //nonedom1
+                                var nonedom1Target = noneDom1 == 0 ? 3 : 2
+                                move(result[noneDom1], nonedom1Target, direction, callback)
+                                var nonedom2Target = noneDom2 == 3 ? 1 : 2
+                                //nonedom2
+                                move(result[noneDom2], nonedom2Target, direction, callback)
+
+                                //加法的位置等于3-domDeleteIndex
+
+                                //deleteDom
+                                //无需移动
+
+                                //newDom
+                                //需要数据打包
+                                var resultObj = []
+
+                                resultObj[ranks] = {
+                                    '1': result[domMoveIndex],
+                                    '2': result[domDeleteIndex],
+                                    '3': result[noneDom1],
+                                    '4': noneDom1,
+                                    '5': 3 - domDeleteIndex,
+                                    '6': noneDom2,
+                                    '7': result[noneDom2],
+                                    '8': 3 - domMoveIndex
+                                }
+
+                                move(result[domMoveIndex], 3 - domDeleteIndex, direction, callback, function (
+                                    resultObj) {
+                                    resultObj[1].style.zIndex = '1'
+                                    divData(domId(resultObj[2]), 'delete', resultObj[2])
+                                    //加法重置
+                                    // 更新dataid,二维数组
+
+                                    var id3 = '' + domId(resultObj[1])[0] + resultObj[5]
+                                    var id4 = '' + domId(resultObj[1])[0] + resultObj[8]
+                                    var id5 = domId(resultObj[1])[0] + '1'
+                                    //2284
+                                    if (resultObj[5] == 1) {
+                                        additionReset(domId(resultObj[2]), domId(resultObj[1]),
+                                            id3, resultObj[1])
+                                    }
+                                    //8224
+                                    else if (resultObj[5] == 2) {
+
+                                        additionReset(domId(resultObj[2]), domId(resultObj[1]),
+                                            id3, resultObj[1],
+                                            id4, resultObj[7])
+                                    }
+                                    //8422
+                                    else if (resultObj[5] == 3) {
+                                        additionReset(domId(resultObj[2]), domId(resultObj[1]),
+                                            id3, resultObj[1],
+                                            id4, resultObj[3],
+                                            id5, resultObj[7])
+                                    }
+
+
+                                }, resultObj[ranks])
+
+                            }
+                        } else if (domValue(result).length == 2) {
+                            if (direction == 'left') {
+
+
+                                //覆盖dom下标,1,3
+                                var domMoveIndex = domValue(result)
+
+                                //被覆盖dom下标
+                                var domDeleteIndex = [0, 2]
+
+                                result[domMoveIndex[0]].style.zIndex = '2'
+                                result[domMoveIndex[1]].style.zIndex = '2'
+
+                                //result[0]不动
+
+                                //result[1]
+                                move(result[domMoveIndex[0]], 0, direction, callback)
+
+                                //result[2]
+                                move(result[domDeleteIndex[1]], 1, direction, callback)
+
+
+                                //需要数据打包
+                                var resultObj = []
+
+                                resultObj[ranks] = {
+                                    '1': domMoveIndex,
+                                    '2': domDeleteIndex,
+                                    '3': result[domMoveIndex[0]],
+                                    '4': result[domMoveIndex[1]],
+                                    '5': result[domDeleteIndex[0]],
+                                    '6': result[domDeleteIndex[1]]
+
+                                }
+                                //result[3]
+                                move(result[domMoveIndex[1]], 1, direction, callback, function (resultObj) {
+                                    resultObj[3].style.zIndex = '1'
+                                    resultObj[4].style.zIndex = '1'
+
+                                    divData(domId(resultObj[5]), 'delete', resultObj[2])
+                                    divData(domId(resultObj[6]), 'delete', resultObj[2])
+                                    //加法重置
+                                    // 更新dataid,二维数组
+                                    var id3 = domId(resultObj[3])[0] + '0'
+                                    additionReset(domId(resultObj[5]), domId(resultObj[3]),
+                                        id3, resultObj[3])
+                                    var id4 = domId(resultObj[3])[0] + '1'
+                                    additionReset(domId(resultObj[6]), domId(resultObj[4]),
+                                        id4, resultObj[4])
+
+
+                                }, resultObj[ranks])
+                            } else if (direction == 'right') {
+
+                                result = result.reverse()
+
+                                //覆盖dom下标,1,3
+                                var domMoveIndex = domValue(result)
+
+                                //被覆盖dom下标
+                                var domDeleteIndex = [0, 2]
+
+                                result[domMoveIndex[0]].style.zIndex = '2'
+                                result[domMoveIndex[1]].style.zIndex = '2'
+
+                                //result[0]不动
+
+                                //result[1]
+                                move(result[domMoveIndex[0]], 3, direction, callback)
+
+                                //result[2]
+                                move(result[domDeleteIndex[1]], 2, direction, callback)
+
+
+                                //需要数据打包
+                                var resultObj = []
+
+                                resultObj[ranks] = {
+                                    '1': domMoveIndex,
+                                    '2': domDeleteIndex,
+                                    '3': result[domMoveIndex[0]],
+                                    '4': result[domMoveIndex[1]],
+                                    '5': result[domDeleteIndex[0]],
+                                    '6': result[domDeleteIndex[1]]
+
+                                }
+                                //result[3]
+                                move(result[domMoveIndex[1]], 2, direction, callback, function (resultObj) {
+                                    resultObj[3].style.zIndex = '1'
+                                    resultObj[4].style.zIndex = '1'
+
+                                    divData(domId(resultObj[5]), 'delete', resultObj[2])
+                                    divData(domId(resultObj[6]), 'delete', resultObj[2])
+                                    //加法重置
+                                    // 更新dataid,二维数组
+                                    var id3 = domId(resultObj[3])[0] + '3'
+                                    additionReset(domId(resultObj[5]), domId(resultObj[3]),
+                                        id3, resultObj[3])
+                                    var id4 = domId(resultObj[3])[0] + '2'
+                                    additionReset(domId(resultObj[6]), domId(resultObj[4]),
+                                        id4, resultObj[4])
+
+
+                                }, resultObj[ranks])
+                            }
+                        }
+
+                    }
+                }
+            }
+        }
+
+        //一个要变动的格子，要修改格子的dataid,二维数组的信息
+        //先动的dom排在前面
+        //起始id，目标id
+        //dom = 0 3 6
+        //oringId = 1 4 7   
+        //targinId = 2 5 8
+        //
+        function reset() {
+            var numObj = {
+                '0': 1,
+                '1': 4,
+                '2': 7
+            }
+            if (arguments.length >= 3) {
+                for (var i = 0; i < arguments.length / 3; i++) {
+                    arguments[numObj[String(i)] - 1].dataset.id = arguments[numObj[String(i)] + 1]
+                    var tempValue = locationXY[arguments[numObj[String(i)]][0]][arguments[numObj[String(i)]][1]].value
+                    locationXY[arguments[numObj[String(i)]][0]][arguments[numObj[String(i)]][1]].value = 0
+                    locationXY[arguments[numObj[String(i)]][0]][arguments[numObj[String(i)]][1]].lock = false
+                    locationXY[arguments[numObj[String(i)] + 1][0]][arguments[numObj[String(i)] + 1][1]].lock = true
+                    locationXY[arguments[numObj[String(i)] + 1][0]][arguments[numObj[String(i)] + 1][1]].value =
+                        tempValue
+                }
+
+            }
+        }
+        //加法重置
+        //id,id2相加的id
+        //id3为新id
+        //dom是不被删除的那一个
+
+        function additionReset(id, id2, id3, dom, id4, dom4, id5, dom5) {
+            //变量锁
+            var id4lock = false
+            var id5lock = false
+
+            //保存值
+            var tempValue = locationXY[id[0]][id[1]].value * 2
+            if (id4) {
+                var tempValue2 = locationXY[domId(dom4)[0]][domId(dom4)[1]].value
+                if (id3 == domId(dom4)) {
+                    id4lock = true
+                }
+            }
+            if (id5) {
+                var tempValue3 = locationXY[domId(dom5)[0]][domId(dom5)[1]].value
+            }
+            locationXY[id[0]][id[1]].value = locationXY[id2[0]][id2[1]].value = 0
+            locationXY[id[0]][id[1]].lock = locationXY[id2[0]][id2[1]].lock = false
+            locationXY[id3[0]][id3[1]].lock = true
+            locationXY[id3[0]][id3[1]].value = tempValue
+            dom.dataset.id = id3
+            dom.innerHTML = tempValue
+            dom.style.backgroundColor = colorMapping[tempValue]
+            if (id4) {
+                if (id3 != domId(dom4)) {
+                    locationXY[domId(dom4)[0]][domId(dom4)[1]].value = 0
+                }
+                locationXY[domId(dom4)[0]][domId(dom4)[1]].lock = id4lock
+                locationXY[id4[0]][id4[1]].lock = true
+                dom4.dataset.id = id4
+                locationXY[id4[0]][id4[1]].value = tempValue2
+            }
+            if (id5) {
+                locationXY[domId(dom5)[0]][domId(dom5)[1]].value = 0
+                locationXY[domId(dom5)[0]][domId(dom5)[1]].lock = false
+                locationXY[id5[0]][id5[1]].lock = true
+                dom5.dataset.id = id5
+                locationXY[id5[0]][id5[1]].value = tempValue3
+            }
+
+
+
+
+        }
+
+        //输入dom数组，判断相邻dom的value是否相等
+        //不相等返回false
+        //相等返回，相等数的第二个数在数组下标的位置
+
+        function domValue(arr) {
+            var temp = [];
+            var result = [];
+            arr.forEach(function (ele) {
+                temp.push({
+                    id: locationXY[domId(ele)[0]][domId(ele)[1]].id,
+                    value: locationXY[domId(ele)[0]][domId(ele)[1]].value
+                })
+            })
+            for (var i = 1; i < temp.length; i++) {
+                if (i == 1 && temp.length === 4) {
+                    if (temp[i].value === temp[i - 1].value &&
+                        temp[i + 1].value === temp[i + 2].value) {
+                        //特殊情况 22 44
+                        result.push(1, 3)
+                        break;
+                    }
+                }
+
+                if (temp[i].value === temp[i - 1].value && temp.length > 0) {
+                    result.push(i)
+                    break;
+                }
+
+            }
+            return result.length === 0 ? false : result
+        }
+
+
+        //识别缺少0-3哪一个的数组
+        //返回缺少的数组
+        function identifyArr(arr) {
+            var temp = [0, 1, 2, 3]
+            for (var i = 0; i < arr.length; i++) {
+                for (var j = 0; j < temp.length; j++) {
+                    if (temp[j] == arr[i]) {
+                        temp.splice(j, 1)
+                    }
+                }
+            }
+
+            return temp;
+        }
+
+
+        //运动函数
+        //dom格子
+        //target要运动的位置
+        //direction方向
+        //callback回调函数
+        function move(dom, target, direction, callback, callbacks, resultObj) {
+
+            //对target进行转换
+            if (direction == 'right') {
+                target = locationObj[String(target)]
+                xMove(dom, target)
+            } else if (direction == 'left') {
+                target = locationObj[String(target)]
+                xMove(dom, target)
+            } else if (direction == 'top') {
+                target = locationObj[String(target)]
+                yMove(dom, target)
+            } else if (direction == 'bottom') {
+                target = locationObj[String(target)]
+                yMove(dom, target)
+            }
+
+            //x缓冲运动
+            function xMove(dom, target) {
+                clearInterval(dom.timer)
+                var iSpeed = null
+
+                //定时器执行次数
+                var order = 0
+
+                dom.timer = setInterval(function () {
+                    order++
+                    iSpeed = target - dom.offsetLeft > 0 ? 3 : -3;
+                    lock = false
+                    sportLock = false
+                    if (Math.abs(target - dom.offsetLeft) < Math.abs(iSpeed)) {
+                        clearInterval(dom.timer);
+                        dom.style.left = target + 'px';
+                        //回调
+                        typeof callback == 'function' && callback(order);
+                        typeof callbacks == 'function' && callbacks(resultObj);
+                    } else {
+                        dom.style.left = dom.offsetLeft + iSpeed + 'px';
+                        console.log(1)
+                    }
+                }, 1);
+            }
+            //y缓冲运动
+            function yMove(dom, target) {
+                clearInterval(dom.timer)
+                var iSpeed = null
+
+                //定时器执行次数
+                var order = 0
+
+                dom.timer = setInterval(function () {
+                    order++
+                    iSpeed = target - dom.offsetTop > 0 ? 3 : -3;
+                    lock = false
+                    sportLock = false
+                    if (Math.abs(target - dom.offsetTop) < Math.abs(iSpeed)) {
+                        clearInterval(dom.timer);
+                        dom.style.top = target + 'px';
+                        //回调
+                        typeof callback == 'function' && callback(order);
+                        typeof callbacks == 'function' && callbacks(resultObj);
+                    } else {
+                        dom.style.top = dom.offsetTop + iSpeed + 'px';
+                        console.log(1)
+                    }
+                }, 1);
+            }
+        }
+    </script>
+</body>
+
+</html>
